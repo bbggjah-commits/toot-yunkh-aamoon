@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APK Builder - محول الويب إلى تطبيق</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;600;700&family=Inter:wght@300;400;600&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    
+    <style>
+        .font-arabic { font-family: 'IBM Plex Sans Arabic', sans-serif; }
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
+        .font-inter { font-family: 'Inter', sans-serif; }
+        
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        .dir-rtl { direction: rtl; }
+        .dir-ltr { direction: ltr; }
+
+        @keyframes fade-in-up {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fade-in-down {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fade-out-down {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(20px); }
+        }
+        .animate-fade-in-up { animation: fade-in-up 0.6s ease-out forwards; }
+        .animate-fade-in-down { animation: fade-in-down 0.6s ease-out forwards; }
+        .animate-fade-out-down { animation: fade-out-down 0.4s ease-in forwards; }
+
+        #mainContent {
+            display: none;
+        }
+        
+        .hidden-content {
+            display: none !important;
+        }
+        
+        .agree-btn {
+            background: linear-gradient(to right, #2563eb, #4f46e5);
+            color: white;
+            cursor: pointer;
+            transform: scale(1);
+            transition: all 0.3s ease;
+        }
+        
+        .agree-btn:hover {
+            background: linear-gradient(to right, #1d4ed8, #4338ca);
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
+        }
+        
+        .generate-btn {
+            background: linear-gradient(to right, #10b981, #059669);
+            color: white;
+            cursor: pointer;
+            transform: scale(1);
+            transition: all 0.3s ease;
+        }
+        
+        .generate-btn:hover {
+            background: linear-gradient(to right, #059669, #047857);
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(16, 185, 129, 0.5);
+        }
+        
+        .progress-bar {
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        
+        .error-message {
+            background: linear-gradient(to right, #dc2626, #b91c1c);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+            display: none;
+        }
+        
+        .success-message {
+            background: linear-gradient(to right, #059669, #047857);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+            display: none;
+        }
+        
+        .logo-image {
+            width: 130px;
+            height: 130px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
+        }
+        
+        @media (max-width: 768px) {
+            .logo-image {
+                width: 100px;
+                height: 100px;
+            }
+        }
+        
+        .hydroxic-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="bg-black text-white font-arabic min-h-screen dir-rtl">
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="fixed inset-0 z-50 flex items-center justify-center bg-black">
+        <div class="text-center">
+            <div class="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p class="text-gray-400">جاري التحميل...</p>
+        </div>
+    </div>
+
+    <!-- Terms Modal - يظهر أولاً -->
+    <div id="termsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity"></div>
+        
+        <div id="modalContent" class="relative bg-gradient-to-br from-gray-900 to-black border border-white/10 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-fade-in-up backdrop-blur-sm">
+            <div class="p-6 border-b border-white/10 flex justify-between items-center bg-gradient-to-r from-gray-900 to-black">
+                <h2 class="text-xl font-bold text-white flex items-center gap-3">
+                    <div class="p-2 rounded-xl bg-blue-500/20 border border-blue-500/30">
+                        <i data-lucide="file-text" class="w-5 h-5 text-blue-400"></i>
+                    </div>
+                    شروط الخدمة
+                </h2>
+            </div>
+
+            <div class="p-6 max-h-[50vh] overflow-y-auto custom-scrollbar space-y-6">
+                <div class="space-y-4">
+                    <h3 class="text-blue-400 text-base font-bold flex items-center gap-3">
+                        <div class="p-2 rounded-lg bg-blue-500/20 border border-blue-500/30">
+                            <i data-lucide="shield" class="w-4 h-4"></i>
+                        </div>
+                        سياسة الاستخدام
+                    </h3>
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors">
+                            <div class="p-1 rounded bg-blue-500/20">
+                                <span class="w-1.5 h-1.5 rounded-full bg-blue-500 block"></span>
+                            </div>
+                            <span class="text-gray-200 text-sm">الخدمة مجانية تماماً للاستخدام الشخصي</span>
+                        </div>
+                        <div class="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors">
+                            <div class="p-1 rounded bg-blue-500/20">
+                                <span class="w-1.5 h-1.5 rounded-full bg-blue-500 block"></span>
+                            </div>
+                            <span class="text-gray-200 text-sm">لا نتحمل مسؤولية المحتوى المنشأ</span>
+                        </div>
+                        <div class="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors">
+                            <div class="p-1 rounded bg-blue-500/20">
+                                <span class="w-1.5 h-1.5 rounded-full bg-blue-500 block"></span>
+                            </div>
+                            <span class="text-gray-200 text-sm">التطبيقات المنشأة بواسطة Hydroxic API</span>
+                        </div>
+                    </div>
+                    <p class="text-blue-400 text-xs bg-blue-900/20 p-2 rounded border border-blue-900/30">
+                        * الخدمة مخصصة للاستخدام الشخصي والتعليمي فقط.
+                    </p>
+                </div>
+
+                <div class="space-y-4">
+                    <h3 class="text-red-400 text-base font-bold flex items-center gap-3">
+                        <div class="p-2 rounded-lg bg-red-500/20 border border-red-500/30">
+                            <i data-lucide="shield-check" class="w-4 h-4"></i>
+                        </div>
+                        المحتوى المرفوض
+                    </h3>
+                    <div class="grid gap-2">
+                        <div class="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-red-500/20 hover:bg-white/10 transition-colors">
+                            <i data-lucide="x" class="w-4 h-4 text-red-400"></i>
+                            <span class="text-gray-200 text-sm">المواقع الإباحية</span>
+                        </div>
+                        <div class="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-red-500/20 hover:bg-white/10 transition-colors">
+                            <i data-lucide="x" class="w-4 h-4 text-red-400"></i>
+                            <span class="text-gray-200 text-sm">المواقع العنصرية</span>
+                        </div>
+                        <div class="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-red-500/20 hover:bg-white/10 transition-colors">
+                            <i data-lucide="x" class="w-4 h-4 text-red-400"></i>
+                            <span class="text-gray-200 text-sm">مواقع القرصنة والاختراق</span>
+                        </div>
+                        <div class="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-red-500/20 hover:bg-white/10 transition-colors">
+                            <i data-lucide="x" class="w-4 h-4 text-red-400"></i>
+                            <span class="text-gray-200 text-sm">المواقع المخالفة للقوانين</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <h3 class="text-gray-300 text-base font-bold flex items-center gap-3">
+                        <div class="p-2 rounded-lg bg-gray-500/20 border border-gray-500/30">
+                            <i data-lucide="info" class="w-4 h-4"></i>
+                        </div>
+                        معلومات تقنية
+                    </h3>
+                    <div class="space-y-2 text-gray-300 text-sm leading-relaxed">
+                        <p class="flex items-start gap-2 p-2 bg-white/5 rounded border border-white/5">
+                            <span class="text-blue-400 mt-0.5 text-xs">•</span>
+                            التطبيقات المنشأة هي تطبيقات أصلية باستخدام Hydroxic API
+                        </p>
+                        <p class="flex items-start gap-2 p-2 bg-white/5 rounded border border-white/5">
+                            <span class="text-blue-400 mt-0.5 text-xs">•</span>
+                            قد تحتاج لتثبيت تطبيقات من مصادر غير معتمدة
+                        </p>
+                        <p class="flex items-start gap-2 p-2 bg-white/5 rounded border border-white/5">
+                            <span class="text-blue-400 mt-0.5 text-xs">•</span>
+                            الملفات المحملة تحذف تلقائياً بعد 24 ساعة
+                        </p>
+                        <p class="flex items-start gap-2 p-2 bg-white/5 rounded border border-white/5">
+                            <span class="text-blue-400 mt-0.5 text-xs">•</span>
+                            نحتفظ بحق إلغاء المشاريع المخالفة للشروط
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-6 border-t border-white/10 bg-gradient-to-r from-gray-900 to-black">
+                <p class="text-gray-400 text-sm text-center mb-4">
+                    بالضغط على الزر أدناه، فإنك توافق على جميع الشروط والأحكام المذكورة أعلاه
+                </p>
+                <button id="agreeBtn" class="w-full py-3 agree-btn font-bold rounded-xl transition-all duration-300">
+                    فهمت واوافق
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content - مخفي في البداية -->
+    <div id="mainContent" class="hidden-content">
+        <!-- الخلفية المتحركة -->
+        <div class="fixed top-0 left-0 w-full h-full pointer-events-none z-0">
+            <div class="absolute top-[-10%] left-[20%] w-[500px] h-[500px] bg-[#0a1128] rounded-full blur-[120px] opacity-40 animate-pulse"></div>
+            <div class="absolute bottom-[-10%] right-[10%] w-[400px] h-[400px] bg-[#1e40af] rounded-full blur-[100px] opacity-20"></div>
+        </div>
+
+        <div class="relative z-10 container mx-auto px-6 py-12 flex flex-col items-center justify-center min-h-screen">
+            
+            <header class="flex flex-col items-center mb-16 text-center animate-fade-in-down">
+                <div class="relative group mb-8">
+                    <div class="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
+                    <img 
+                        src="http://my-host-imager-production.up.railway.app/uploads/1764358128039-200127464.jpg" 
+                        alt="APK Builder Logo" 
+                        class="logo-image relative transform transition duration-500 hover:scale-105"
+                        onerror="this.style.display='none'; document.getElementById('fallbackIcon').style.display='flex';"
+                    />
+                    <div id="fallbackIcon" class="relative w-32 h-32 md:w-40 md:h-40 rounded-full border-2 border-white/10 shadow-2xl bg-gradient-to-br from-blue-900 to-indigo-900 flex items-center justify-center transform transition duration-500 hover:scale-105 hidden">
+                        <i data-lucide="smartphone" class="w-16 h-16 text-white"></i>
+                    </div>
+                    <div class="absolute inset-0 rounded-full ring-2 ring-blue-500/20 animate-pulse"></div>
+                </div>
+
+                <h1 class="text-5xl md:text-7xl font-bold font-orbitron tracking-wider mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white via-gray-200 to-gray-500">
+                    APK Builder
+                </h1>
+                
+                <p class="text-xl md:text-2xl text-gray-400 font-light tracking-wide animate-fade-in-up delay-200">
+                    حول أي موقع ويب إلى تطبيق أندرويد
+                </p>
+                <div class="mt-4 hydroxic-badge animate-fade-in-up delay-300">
+                    ⚡ مدعوم بـ Hydroxic API
+                </div>
+            </header>
+
+            <!-- رسائل التنبيه -->
+            <div id="errorMessage" class="error-message w-full max-w-2xl mb-4">
+                <div class="flex items-center gap-3">
+                    <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                    <span id="errorText"></span>
+                </div>
+            </div>
+
+            <div id="successMessage" class="success-message w-full max-w-2xl mb-4">
+                <div class="flex items-center gap-3">
+                    <i data-lucide="check-circle" class="w-5 h-5"></i>
+                    <span id="successText"></span>
+                </div>
+            </div>
+
+            <!-- نموذج إنشاء التطبيق -->
+            <section class="w-full max-w-2xl mb-16">
+                <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 shadow-2xl">
+                    <form id="apkForm" class="space-y-6">
+                        <div class="space-y-4">
+                            <label for="websiteUrl" class="block text-lg font-semibold text-gray-200">
+                                <i data-lucide="globe" class="w-5 h-5 inline-block ml-2 text-blue-400"></i>
+                                رابط الموقع
+                            </label>
+                            <input 
+                                type="url" 
+                                id="websiteUrl" 
+                                placeholder="https://example.com"
+                                class="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                                required
+                            >
+                        </div>
+
+                        <div class="space-y-4">
+                            <label for="appName" class="block text-lg font-semibold text-gray-200">
+                                <i data-lucide="edit-3" class="w-5 h-5 inline-block ml-2 text-green-400"></i>
+                                اسم التطبيق (اختياري)
+                            </label>
+                            <input 
+                                type="text" 
+                                id="appName" 
+                                placeholder="اسم تطبيقي"
+                                class="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300"
+                            >
+                        </div>
+
+                        <button 
+                            type="submit" 
+                            id="generateBtn"
+                            class="w-full py-4 generate-btn font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2"
+                        >
+                            <i data-lucide="package" class="w-5 h-5"></i>
+                            إنشاء التطبيق الحقيقي
+                        </button>
+                    </form>
+
+                    <!-- منطقة التقدم -->
+                    <div id="progressSection" class="mt-6 space-y-4 hidden">
+                        <div class="flex justify-between text-sm text-gray-400">
+                            <span id="progressStatus">جاري تحضير التطبيق...</span>
+                            <span id="progressPercent">0%</span>
+                        </div>
+                        <div class="w-full bg-gray-800 rounded-full h-2">
+                            <div id="progressBar" class="progress-bar h-2 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full"></div>
+                        </div>
+                        
+                        <div id="downloadSection" class="text-center mt-6 hidden">
+                            <div class="p-6 bg-gradient-to-r from-green-900 to-emerald-800 rounded-2xl border-2 border-green-500">
+                                <h3 class="text-2xl font-bold mb-4 text-green-400">✅ تم الإنشاء بنجاح!</h3>
+                                <p class="text-gray-200 mb-4" id="successDetails">التطبيق جاهز للتحميل</p>
+                                <a 
+                                    id="downloadLink" 
+                                    class="inline-flex items-center gap-2 px-8 py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition-all duration-300 hover:scale-105 hover:shadow-[0_0_30px_rgba(34,197,94,0.5)] text-lg"
+                                >
+                                    <i data-lucide="download" class="w-6 h-6"></i>
+                                    حمل التطبيق الآن
+                                </a>
+                                <p class="text-gray-400 text-sm mt-4">⚡ تطبيق حقيقي - 📱 يعمل على جميع الأجهزة</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ميزات الخدمة -->
+            <section class="w-full max-w-5xl mb-20">
+                <h2 class="text-3xl font-bold text-center mb-12 text-gray-100">مميزات الخدمة المتطورة</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="group relative bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(30,64,175,0.3)] flex flex-col items-start">
+                        <div class="mb-4 p-3 rounded-lg bg-black/40 border border-white/5 group-hover:border-blue-500/30 transition-colors">
+                            <i data-lucide="zap" class="w-8 h-8 text-blue-400"></i>
+                        </div>
+                        <h3 class="text-xl font-bold mb-2 text-gray-100 group-hover:text-white">تطبيقات أصلية</h3>
+                        <p class="text-gray-400 text-sm leading-relaxed">تطبيقات حقيقية باستخدام Hydroxic API، وليست مجرد غلاف.</p>
+                    </div>
+
+                    <div class="group relative bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(30,64,175,0.3)] flex flex-col items-start">
+                        <div class="mb-4 p-3 rounded-lg bg-black/40 border border-white/5 group-hover:border-green-500/30 transition-colors">
+                            <i data-lucide="shield" class="w-8 h-8 text-green-400"></i>
+                        </div>
+                        <h3 class="text-xl font-bold mb-2 text-gray-100 group-hover:text-white">بناء سحابي آمن</h3>
+                        <p class="text-gray-400 text-sm leading-relaxed">خدمة مجانية وآمنة باستخدام أحدث التقنيات السحابية.</p>
+                    </div>
+
+                    <div class="group relative bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(30,64,175,0.3)] flex flex-col items-start">
+                        <div class="mb-4 p-3 rounded-lg bg-black/40 border border-white/5 group-hover:border-purple-500/30 transition-colors">
+                            <i data-lucide="smartphone" class="w-8 h-8 text-purple-400"></i>
+                        </div>
+                        <h3 class="text-xl font-bold mb-2 text-gray-100 group-hover:text-white">متوافق مع جميع الأجهزة</h3>
+                        <p class="text-gray-400 text-sm leading-relaxed">التطبيقات الناتجة متوافقة مع جميع إصدارات أندرويد.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- روابط التواصل -->
+            <section class="w-full max-w-2xl text-center mb-16">
+                <h2 class="text-2xl font-bold mb-8 text-gray-100">الدعم والمساعدة</h2>
+                <div class="flex flex-wrap justify-center gap-4">
+                    <a 
+                        href="https://t.me/your_channel" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        class="flex items-center gap-3 px-8 py-4 bg-[#0088cc]/10 text-[#0088cc] border border-[#0088cc]/30 rounded-xl hover:bg-[#0088cc] hover:text-white transition-all duration-300 hover:shadow-[0_0_20px_rgba(0,136,204,0.4)] hover:scale-105"
+                    >
+                        <i data-lucide="send" class="w-5 h-5"></i>
+                        <span class="font-semibold font-inter">Telegram</span>
+                    </a>
+
+                    <button 
+                        id="emailBtn"
+                        class="flex items-center gap-3 px-8 py-4 bg-gray-100/10 text-gray-300 border border-white/10 rounded-xl hover:bg-white hover:text-black transition-all duration-300 hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:scale-105 relative overflow-hidden group"
+                    >
+                        <i data-lucide="mail" class="w-5 h-5"></i>
+                        <span class="font-semibold font-inter" id="emailText">support@apkbuilder.com</span>
+                        <span class="absolute inset-0 flex items-center justify-center bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                            <span class="text-xs text-white font-arabic">نسخ</span>
+                        </span>
+                    </button>
+                </div>
+            </section>
+
+            <footer class="w-full text-center border-t border-white/5 pt-8 pb-4">
+                <p class="text-gray-500 text-sm font-arabic mb-2">
+                    جميع الحقوق محفوظة © 2025 APK Builder | مدعوم بـ Hydroxic API
+                </p>
+                <button 
+                    id="termsBtn"
+                    class="text-gray-600 text-xs hover:text-blue-400 transition-colors flex items-center justify-center gap-1 mx-auto"
+                >
+                    <i data-lucide="file-text" class="w-3 h-3"></i>
+                    شروط الخدمة
+                </button>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        // تهيئة الأيقونات
+        lucide.createIcons();
+
+        // إعدادات الخدمة السحابية
+        const HYDROXIC_API_URL = 'https://hydroxic.ml/api/build';
+
+        // التحقق إذا كان المستخدم وافق مسبقاً
+        const hasAgreed = localStorage.getItem('termsAgreed');
+        
+        if (hasAgreed) {
+            showMainContent();
+        } else {
+            showTermsModal();
+        }
+
+        // دالة إظهار المحتوى الرئيسي
+        function showMainContent() {
+            document.getElementById('loadingScreen').style.display = 'none';
+            document.getElementById('termsModal').style.display = 'none';
+            document.getElementById('mainContent').classList.remove('hidden-content');
+            document.getElementById('mainContent').style.display = 'block';
+        }
+
+        // دالة إظهار شروط الخدمة
+        function showTermsModal() {
+            document.getElementById('loadingScreen').style.display = 'none';
+            document.getElementById('termsModal').style.display = 'flex';
+            document.getElementById('mainContent').classList.add('hidden-content');
+        }
+
+        // دالة إظهار رسالة الخطأ
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            const errorText = document.getElementById('errorText');
+            errorText.textContent = message;
+            errorDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // دالة إظهار رسالة النجاح
+        function showSuccess(message) {
+            const successDiv = document.getElementById('successMessage');
+            const successText = document.getElementById('successText');
+            successText.textContent = message;
+            successDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                successDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // دالة إنشاء التطبيق باستخدام Hydroxic API
+        async function createRealAPK(websiteUrl, appName = 'تطبيقي') {
+            const requestData = {
+                url: websiteUrl,
+                name: appName,
+                platform: 'android',
+                version: '1.0.0',
+                settings: {
+                    orientation: 'portrait',
+                    fullscreen: false,
+                    permissions: ['INTERNET']
+                }
+            };
+
+            const response = await fetch(HYDROXIC_API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            });
+
+            if (!response.ok) {
+                throw new Error(`خطأ في الخادم: ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            if (!data.success) {
+                throw new Error(data.error || 'فشل في إنشاء التطبيق');
+            }
+
+            return {
+                success: true,
+                downloadUrl: data.download_url,
+                filename: data.filename,
+                fileSize: data.size,
+                buildId: data.build_id
+            };
+        }
+
+        // حدث زر الموافقة
+        document.getElementById('agreeBtn').addEventListener('click', function() {
+            localStorage.setItem('termsAgreed', 'true');
+            showMainContent();
+        });
+
+        // عملية إنشاء التطبيق
+        document.getElementById('apkForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const websiteUrl = document.getElementById('websiteUrl').value;
+            const appName = document.getElementById('appName').value || 'تطبيقي';
+            const progressSection = document.getElementById('progressSection');
+            const progressBar = document.getElementById('progressBar');
+            const progressPercent = document.getElementById('progressPercent');
+            const progressStatus = document.getElementById('progressStatus');
+            const downloadSection = document.getElementById('downloadSection');
+            const downloadLink = document.getElementById('downloadLink');
+            const successDetails = document.getElementById('successDetails');
+            const generateBtn = document.getElementById('generateBtn');
+            
+            // التحقق من الرابط
+            if (!websiteUrl) {
+                showError('يرجى إدخال رابط الموقع');
+                return;
+            }
+
+            try {
+                new URL(websiteUrl);
+            } catch (error) {
+                showError('رابط الموقع غير صحيح');
+                return;
+            }
+
+            // إظهار منطقة التقدم
+            progressSection.classList.remove('hidden');
+            downloadSection.classList.add('hidden');
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = '<i data-lucide="loader" class="w-5 h-5 animate-spin"></i> جاري الإنشاء...';
+
+            try {
+                // محاكاة التقدم
+                let progress = 0;
+                const progressInterval = setInterval(() => {
+                    progress += Math.random() * 15;
+                    if (progress > 100) progress = 100;
+                    
+                    progressBar.style.width = `${progress}%`;
+                    progressPercent.textContent = `${Math.round(progress)}%`;
+                    
+                    if (progress < 30) {
+                        progressStatus.textContent = 'جاري الاتصال بخدمة Hydroxic...';
+                    } else if (progress < 60) {
+                        progressStatus.textContent = 'جاري بناء التطبيق...';
+                    } else if (progress < 90) {
+                        progressStatus.textContent = 'جاري توقيع التطبيق...';
+                    } else {
+                        progressStatus.textContent = 'جاري تحضير الملف...';
+                    }
+                }, 300);
+
+                // إنشاء التطبيق الحقيقي
+                const result = await createRealAPK(websiteUrl, appName);
+
+                clearInterval(progressInterval);
+                
+                // إكمال التقدم إلى 100%
+                progressBar.style.width = '100%';
+                progressPercent.textContent = '100%';
+                progressStatus.textContent = 'اكتمل البناء!';
+
+                // إظهار رابط التحميل
+                setTimeout(() => {
+                    downloadSection.classList.remove('hidden');
+                    downloadLink.href = result.downloadUrl;
+                    downloadLink.download = result.filename;
+                    successDetails.textContent = `تم إنشاء "${appName}" بنجاح!`;
+                    showSuccess('تم إنشاء التطبيق الحقيقي بنجاح!');
+                }, 1000);
+
+            } catch (error) {
+                console.error('Error:', error);
+                showError(`فشل في الإنشاء: ${error.message}`);
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = '<i data-lucide="package" class="w-5 h-5"></i> إنشاء التطبيق الحقيقي';
+            }
+        });
+
+        // نسخ البريد الإلكتروني
+        document.getElementById('emailBtn').addEventListener('click', function() {
+            const email = "support@apkbuilder.com";
+            const emailText = document.getElementById('emailText');
+            const button = this;
+            
+            navigator.clipboard.writeText(email).then(() => {
+                button.classList.remove('bg-gray-100/10', 'text-gray-300', 'border-white/10');
+                button.classList.add('bg-green-500/20', 'text-green-400', 'border-green-500/50', 'shadow-[0_0_20px_rgba(34,197,94,0.4)]');
+                emailText.textContent = "تم النسخ!";
+                
+                setTimeout(() => {
+                    button.classList.remove('bg-green-500/20', 'text-green-400', 'border-green-500/50', 'shadow-[0_0_20px_rgba(34,197,94,0.4)]');
+                    button.classList.add('bg-gray-100/10', 'text-gray-300', 'border-white/10');
+                    emailText.textContent = "support@apkbuilder.com";
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                alert('تعذر النسخ، يرجى المحاولة يدوياً');
+            });
+        });
+
+        // زر شروط الخدمة في المحتوى الرئيسي
+        document.getElementById('termsBtn').addEventListener('click', function() {
+            showTermsModal();
+        });
+
+        // اختبار اتصال الخدمة عند التحميل
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch(HYDROXIC_API_URL, { method: 'HEAD' });
+                console.log('Hydroxic service is available');
+            } catch (error) {
+                console.warn('Hydroxic service might be offline');
+            }
+        });
+    </script>
+</body>
+                              </html>
